@@ -37,7 +37,6 @@ h2 { font-size: 15px; font-weight: 700; }
 }
 #config-row1 { display: flex; align-items: flex-end; gap: 20px; }
 #config-row1 h1 { margin-right: 8px; align-self: center; }
-#config-row2 { display: flex; align-items: flex-end; gap: 20px; flex-wrap: wrap; }
 .cfg-field { display: flex; flex-direction: column; }
 .cfg-field select, .cfg-field input {
   background: var(--bg3); color: var(--text); border: 1px solid var(--border2);
@@ -70,9 +69,21 @@ h2 { font-size: 15px; font-weight: 700; }
 .spread-val.ok   { color: var(--green); }
 .spread-val.warn { color: var(--yellow); }
 .spread-val.bad  { color: var(--accent); }
-#zone-legend { display: flex; flex-direction: column; gap: 6px; padding-top: 2px; }
+#right-panel { display: flex; flex-direction: column; gap: 16px; }
+#zone-legend { display: flex; flex-direction: column; gap: 6px; padding: 6px 0 4px; }
 .legend-item { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text2); }
 .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+#ds-box {
+  border: 1px solid var(--border2); border-radius: 6px;
+  padding: 10px 14px; display: flex; flex-direction: column; gap: 10px;
+  background: var(--bg2);
+}
+#ds-box-title {
+  font-size: 11px; font-weight: 600; color: var(--text2);
+  border-bottom: 1px solid var(--border); padding-bottom: 8px;
+}
+.ds-row { display: flex; flex-direction: column; gap: 4px; }
+.ds-row .thresh-group input { min-width: 40px; width: 40px; }
 
 /* MIDI trace */
 #midi-trace { display: flex; flex-direction: column; }
@@ -108,6 +119,7 @@ h2 { font-size: 15px; font-weight: 700; }
 .tr-extra { color: var(--text3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tr-out .tr-note { color: var(--text3); font-style: italic; }
 .tr-out .tr-vel, .tr-out .tr-q, .tr-out .tr-z { color: var(--text3); }
+.tr-dim { opacity: 0.45; }
 
 /* ── Bottom controls ── */
 #controls {
@@ -154,10 +166,12 @@ h2 { font-size: 15px; font-weight: 700; }
 /* ── Compare section ── */
 #compare-section { border-top: 2px solid var(--border); }
 #compare-header {
-  display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap;
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
   padding: 14px 20px; background: var(--bg2); border-bottom: 1px solid var(--border);
 }
-#compare-header h2 { align-self: center; margin-right: 4px; }
+#compare-header h2 { margin-right: 4px; }
+#compare-pickers { display: flex; gap: 12px; align-items: flex-end; }
+#compare-pickers .cfg-field { display: flex; flex-direction: column; gap: 4px; }
 #compare-summary-bar {
   padding: 8px 20px; font-family: var(--mono); font-size: 12px;
   background: var(--bg3); border-bottom: 1px solid var(--border);
@@ -231,57 +245,59 @@ h2 { font-size: 15px; font-weight: 700; }
       <div class="label">MIDI In</div>
       <select id="midi-in"><option value="">— select input —</option></select>
     </div>
+    <div class="cfg-field">
+      <div class="label">MIDI Out</div>
+      <select id="midi-out"><option value="">— select output —</option></select>
+    </div>
     <div id="midi-status">
       <div id="status-dot"></div>
       <span id="status-text">no MIDI</span>
     </div>
   </div>
 
-  <div id="config-row2">
-    <div class="cfg-field">
-      <div class="label">MIDI Out</div>
-      <select id="midi-out"><option value="">— select output —</option></select>
-    </div>
-    <div class="cfg-field">
-      <div class="label">Zone CC#</div>
-      <input id="zone-cc" type="number" min="1" max="127" value="20" style="min-width:60px;width:60px;">
-    </div>
-    <div class="cfg-field">
-      <div class="label">Zone Thresholds (Z0–Z3)</div>
-      <div class="thresh-group">
-        <input id="thresh0" type="number" min="0" max="127" value="1">
-        <input id="thresh1" type="number" min="0" max="127" value="30">
-        <input id="thresh2" type="number" min="0" max="127" value="64">
-        <input id="thresh3" type="number" min="0" max="127" value="95">
-      </div>
-    </div>
-    <div class="cfg-field">
-      <div class="label">Q1–Q4 Notes</div>
-      <div class="thresh-group">
-        <input id="qch0" type="number" min="0" max="127" value="30">
-        <input id="qch1" type="number" min="0" max="127" value="35">
-        <input id="qch2" type="number" min="0" max="127" value="40">
-        <input id="qch3" type="number" min="0" max="127" value="45">
-      </div>
-    </div>
-    <div class="cfg-field">
-      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
-        <input type="checkbox" id="raw-mode"> <span class="label" style="margin:0;">Raw mode</span>
-      </label>
-      <span style="font-size:11px;color:var(--text3);font-family:var(--mono);">ignore zone CC · show all notes</span>
-    </div>
-  </div>
 </div>
 
 <!-- ── Zone analyzer ─────────────────────────────────────────────────────── -->
 <div id="main">
   <div id="top-row">
     <div id="pad-wrap"></div>
-    <div id="zone-legend">
-      <div class="legend-item"><div class="legend-dot" style="background:var(--z0);"></div> Z0 — center</div>
-      <div class="legend-item"><div class="legend-dot" style="background:var(--z1);"></div> Z1 — mid-inner</div>
-      <div class="legend-item"><div class="legend-dot" style="background:var(--z2);"></div> Z2 — mid-outer</div>
-      <div class="legend-item"><div class="legend-dot" style="background:var(--z3);"></div> Z3 — outer edge</div>
+    <div id="right-panel">
+      <div id="ds-box">
+        <div id="ds-box-title">
+          <label style="display:flex;align-items:center;gap:7px;cursor:pointer;">
+            <input type="checkbox" id="drumstrum-decode" checked>
+            <span>DrumStrum Decoding</span>
+          </label>
+        </div>
+        <div id="zone-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--z0);"></div> Z0 — center</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--z1);"></div> Z1 — mid-inner</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--z2);"></div> Z2 — mid-outer</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--z3);"></div> Z3 — outer edge</div>
+        </div>
+        <div class="ds-row">
+          <div class="label">Zone CC#</div>
+          <input id="zone-cc" type="number" min="1" max="127" value="20" style="width:52px;">
+        </div>
+        <div class="ds-row">
+          <div class="label">Thresholds (Z0–Z3)</div>
+          <div class="thresh-group">
+            <input id="thresh0" type="number" min="0" max="127" value="1">
+            <input id="thresh1" type="number" min="0" max="127" value="30">
+            <input id="thresh2" type="number" min="0" max="127" value="64">
+            <input id="thresh3" type="number" min="0" max="127" value="95">
+          </div>
+        </div>
+        <div class="ds-row">
+          <div class="label">Q1–Q4 Notes</div>
+          <div class="thresh-group">
+            <input id="qch0" type="number" min="0" max="127" value="30">
+            <input id="qch1" type="number" min="0" max="127" value="35">
+            <input id="qch2" type="number" min="0" max="127" value="40">
+            <input id="qch3" type="number" min="0" max="127" value="45">
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -309,7 +325,7 @@ h2 { font-size: 15px; font-weight: 700; }
 
 <!-- ── Velocity grid ─────────────────────────────────────────────────────── -->
 <div id="stats-panel">
-  <div class="label" style="margin-bottom:8px;">Velocity per Zone (median · min–max · hits)</div>
+  <div class="label" style="margin-bottom:8px;">Velocity per Zone (median · min–max · hits) · enable Record Mode to capture</div>
   <table id="grid-table">
     <thead>
       <tr>
@@ -339,20 +355,22 @@ h2 { font-size: 15px; font-weight: 700; }
   <div id="compare-header">
     <h2>Compare</h2>
 
-    <div class="cfg-field">
-      <div class="label">Session A</div>
-      <select id="cmp-a" style="min-width:200px;">
-        <option value="">— select session —</option>
-        <option value="factory">Factory Default</option>
-      </select>
-    </div>
+    <div id="compare-pickers">
+      <div class="cfg-field">
+        <div class="label">Session A</div>
+        <select id="cmp-a" style="min-width:200px;">
+          <option value="">— select session —</option>
+          <option value="factory">Factory Default</option>
+        </select>
+      </div>
 
-    <div class="cfg-field">
-      <div class="label">Session B</div>
-      <select id="cmp-b" style="min-width:200px;">
-        <option value="">— select session —</option>
-        <option value="factory">Factory Default</option>
-      </select>
+      <div class="cfg-field">
+        <div class="label">Session B</div>
+        <select id="cmp-b" style="min-width:200px;">
+          <option value="">— select session —</option>
+          <option value="factory">Factory Default</option>
+        </select>
+      </div>
     </div>
 
     <button class="btn primary" onclick="runCompare()">Compare</button>
@@ -391,6 +409,7 @@ h2 { font-size: 15px; font-weight: 700; }
 // ── State ────────────────────────────────────────────────────────────────────
 const samples = Array.from({length:4}, () => Array.from({length:4}, () => []));
 const lastZoneCC = new Uint8Array(17); // ch 1-16
+const lastRawCC  = new Uint8Array(17); // raw CC value before decode, ch 1-16
 const eventLog = [];
 let activeInput  = null;
 let activeOutput = null;
@@ -444,17 +463,35 @@ function renderGrid() {
     for (let z = 0; z < 4; z++) {
       const td = document.createElement('td');
       const arr = samples[q][z];
-      if (arr.length < 3) {
-        td.textContent = '—';
+      if (arr.length === 0) {
+        td.innerHTML = `<span style="color:var(--text3);font-size:10px;">0</span>`;
+      } else if (arr.length < 3) {
+        td.innerHTML = `<span style="color:var(--text3);">—</span><span style="color:var(--text3);font-size:10px;"> (${arr.length})</span>`;
       } else {
         const med = median(arr), mn = Math.min(...arr), mx = Math.max(...arr);
         td.classList.add('has-data');
-        td.innerHTML = `${med}<span style="color:var(--text3);font-size:10px;"> ${mn}–${mx} (${arr.length})</span>`;
+        td.innerHTML = `${med}<span style="color:var(--text3);font-size:10px;"> ${mn}–${mx}</span><br><span style="color:var(--text3);font-size:10px;">${arr.length} hits</span>`;
       }
       tr.appendChild(td);
     }
     tbody.appendChild(tr);
   }
+
+  // Totals row
+  const ttr = document.createElement('tr');
+  const tth = document.createElement('td');
+  tth.textContent = 'Total';
+  tth.style.color = 'var(--text3)';
+  ttr.appendChild(tth);
+  for (let z = 0; z < 4; z++) {
+    const count = samples.reduce((sum, q) => sum + q[z].length, 0);
+    const td = document.createElement('td');
+    td.style.color = count > 0 ? 'var(--text2)' : 'var(--text3)';
+    td.style.fontSize = '11px';
+    td.textContent = count;
+    ttr.appendChild(td);
+  }
+  tbody.appendChild(ttr);
 }
 
 // ── SVG Pad Diagram ───────────────────────────────────────────────────────────
@@ -611,6 +648,7 @@ function resetData() {
   for (let q = 0; q < 4; q++) for (let z = 0; z < 4; z++) samples[q][z] = [];
   eventLog.length = 0;
   lastZoneCC.fill(0);
+  lastRawCC.fill(0);
   renderGrid();
   colorSectors();
   updateSpread();
@@ -639,33 +677,20 @@ function sendRecalibrate() {
 
 const traceLog = [];
 const MAX_TRACE = 60;
+let traceStart = performance.now();
 
-// addTrace(direction, message)
-// direction: 'in' | 'out'
-// message: display string
-// optional extra fields for note events: q, z
-function addTrace(dir, msg, q, z) {
-  traceLog.unshift({ t: performance.now(), dir, msg, q: q ?? -1, z: z ?? -1 });
+// addTrace(dir, cols)
+// cols: { event, q, z, vel, cc } — all optional except event
+function addTrace(dir, cols) {
+  traceLog.unshift({ t: performance.now(), dir, cols: typeof cols === 'string' ? { event: cols } : cols });
   if (traceLog.length > MAX_TRACE) traceLog.pop();
   renderTrace();
 }
 
 function clearTrace() {
   traceLog.length = 0;
+  traceStart = performance.now();
   renderTrace();
-}
-
-// Parse a trace message string into columns: { note, q, z, vel, extra }
-function parseTraceMsg(msg, dir) {
-  if (dir === 'out') return { note: msg, q: '', z: '', vel: '', extra: '' };
-  // Note-on: "n30  Q1  Z2  v87"
-  const noteMatch = msg.match(/^n(\d+)\s+Q([1-4\?])\s+Z(\d)\s+v(\d+)/);
-  if (noteMatch) return { note: `n${noteMatch[1]}`, q: `Q${noteMatch[2]}`, z: `Z${noteMatch[3]}`, vel: noteMatch[4], extra: '' };
-  // CC: "CC20=50  Z2"
-  const ccMatch = msg.match(/^CC(\d+)=(\d+)\s+Z(\d)/);
-  if (ccMatch) return { note: `CC${ccMatch[1]}`, q: '', z: `Z${ccMatch[3]}`, vel: ccMatch[2], extra: '' };
-  // Everything else
-  return { note: msg, q: '', z: '', vel: '', extra: '' };
 }
 
 function renderTrace() {
@@ -673,34 +698,30 @@ function renderTrace() {
   if (!body) return;
   body.innerHTML = '';
 
-  // Sticky header
   const hdr = document.createElement('div');
   hdr.className = 'tr-hdr';
-  hdr.innerHTML = '<span>Δt</span><span></span><span>Event</span><span>Q</span><span>Z</span><span>Vel</span><span></span>';
+  hdr.innerHTML = '<span>Time</span><span></span><span>Event</span><span>Q</span><span>Z</span><span>Vel</span><span>CC</span>';
   body.appendChild(hdr);
 
   for (let i = 0; i < traceLog.length; i++) {
     const ev = traceLog[i];
-    const prev = traceLog[i + 1];
-    const dt = prev ? ev.t - prev.t : null;
-    const dtStr = dt === null || dt > 400 ? '●' : `+${Math.round(dt)}ms`;
+    const secs = ((ev.t - traceStart) / 1000).toFixed(3);
     const dirGlyph = ev.dir === 'out' ? '▲' : '▼';
-
-    const { note, q, z, vel, extra } = parseTraceMsg(ev.msg, ev.dir);
+    const c = ev.cols || {};
 
     const row = document.createElement('div');
     row.className = 'tr-row';
-    if (dt === null || dt > 400) row.classList.add('tr-gap');
     if (ev.dir === 'out') row.classList.add('tr-out');
+    if (c.dim) row.classList.add('tr-dim');
 
     row.innerHTML =
-      `<span class="tr-dt">${dtStr}</span>` +
+      `<span class="tr-dt">${secs}</span>` +
       `<span class="tr-dir">${dirGlyph}</span>` +
-      `<span class="tr-note">${note}</span>` +
-      `<span class="tr-q">${q}</span>` +
-      `<span class="tr-z">${z}</span>` +
-      `<span class="tr-vel">${vel}</span>` +
-      `<span class="tr-extra">${extra}</span>`;
+      `<span class="tr-note">${c.event || ''}</span>` +
+      `<span class="tr-q">${c.q || ''}</span>` +
+      `<span class="tr-z">${c.z || ''}</span>` +
+      `<span class="tr-vel">${c.vel || ''}</span>` +
+      `<span class="tr-extra">${c.cc || ''}</span>`;
     body.appendChild(row);
   }
 }
@@ -1352,18 +1373,30 @@ function onMidiMessage(event) {
   const zoneCC     = getZoneCC();
   const thresholds = getThresholds();
   const qNotes     = getQNotes();
-  const rawMode    = document.getElementById('raw-mode').checked;
+  const dsMode = document.getElementById('drumstrum-decode').checked;
 
-  if (!rawMode && msgType === 0xB0 && data1 === zoneCC) {
-    lastZoneCC[ccKey] = decodeZone(data2, thresholds);
-    addTrace('in', `CC${data1}=${data2}  Z${lastZoneCC[ccKey]}`);
+  if (msgType === 0xB0) {
+    if (data1 === zoneCC) {
+      lastRawCC[ccKey] = data2;
+      if (dsMode) lastZoneCC[ccKey] = decodeZone(data2, thresholds);
+      // zone CC folded into the next note row — don't log separately
+    } else {
+      addTrace('in', { event: `CC${data1}`, vel: data2, dim: true });
+    }
     return;
   }
 
   if (msgType === 0x90 && data2 > 0) {
     const quadrant = qNotes.indexOf(data1);
-    const zone = rawMode ? 0 : (lastZoneCC[ccKey] || 0);
-    addTrace('in', `n${data1}  Q${quadrant >= 0 ? quadrant+1 : '?'}  Z${zone}  v${data2}`, quadrant, zone);
+    const zone = dsMode ? (lastZoneCC[ccKey] || 0) : 0;
+    const ccVal = lastRawCC[ccKey];
+    addTrace('in', {
+      event: `n${data1}`,
+      q: quadrant >= 0 ? `Q${quadrant+1}` : 'Q?',
+      z: `Z${zone}`,
+      vel: data2,
+      cc: ccVal || ''
+    });
     if (quadrant < 0) return;
     setConnected(true);
     flashBadge(quadrant, zone, data2);
@@ -1379,6 +1412,17 @@ document.getElementById('midi-in').addEventListener('change', e => {
 document.getElementById('midi-out').addEventListener('change', e => {
   activeOutput = e.target.value ? (midiAccess?.outputs.get(e.target.value) || null) : null;
 });
+
+function updateDsBoxState() {
+  const enabled = document.getElementById('drumstrum-decode').checked;
+  ['zone-cc','thresh0','thresh1','thresh2','thresh3','qch0','qch1','qch2','qch3'].forEach(id => {
+    const el = document.getElementById(id);
+    el.disabled = !enabled;
+    el.style.opacity = enabled ? '' : '0.35';
+  });
+  document.getElementById('zone-legend').style.opacity = enabled ? '' : '0.35';
+}
+document.getElementById('drumstrum-decode').addEventListener('change', updateDsBoxState);
 
 
 // ── Utility ───────────────────────────────────────────────────────────────────
@@ -1397,6 +1441,7 @@ updateSpread();
 renderSessions();
 renderComparePickers();
 initMIDI();
+updateDsBoxState();
 </script>
 
 </body>
