@@ -57,7 +57,7 @@ h2 { font-size: 15px; font-weight: 700; }
 #pad-wrap { flex: 0 0 auto; display: flex; gap: 16px; align-items: flex-start; }
 .pad-device { display: flex; flex-direction: column; align-items: center; gap: 6px; }
 .pad-device-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text3); font-family: var(--mono); }
-#stats-panel { flex: 1; min-width: 360px; }
+#stats-panel { padding: 16px 20px; }
 #grid-table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 12px; }
 #grid-table th { padding: 6px 10px; text-align: center; font-weight: 400; border-bottom: 1px solid var(--border); }
 #grid-table th:first-child { text-align: left; }
@@ -292,23 +292,6 @@ h2 { font-size: 15px; font-weight: 700; }
     </div>
     <div id="trace-body"></div>
   </div>
-
-  <div id="stats-panel">
-    <div class="label" style="margin-bottom:8px;">Velocity per Zone (median · min–max · hits)</div>
-    <table id="grid-table">
-      <thead>
-        <tr>
-          <th></th>
-          <th style="color:var(--z0);">Z0 center</th>
-          <th style="color:var(--z1);">Z1 mid-in</th>
-          <th style="color:var(--z2);">Z2 mid-out</th>
-          <th style="color:var(--z3);">Z3 outer</th>
-        </tr>
-      </thead>
-      <tbody id="grid-body"></tbody>
-    </table>
-    <div id="spread-bar"></div>
-  </div>
 </div>
 
 <!-- ── Controls bar ───────────────────────────────────────────────────────── -->
@@ -317,11 +300,29 @@ h2 { font-size: 15px; font-weight: 700; }
   <button class="btn" onclick="resetData()">Reset Data</button>
   <div class="ctrl-sep"></div>
   <button class="btn" onclick="exportCSV()">Export CSV</button>
-  <button class="btn" onclick="sendRecalibrate()">Recalibrate</button>
+  <button class="btn" onclick="sendRecalibrate()">Send CC121 recal</button>
   <button class="btn danger" onclick="confirmFactoryReset()">Factory Reset</button>
   <div class="ctrl-sep"></div>
   <button class="btn primary" id="dump-btn" onclick="requestDump()">Dump &amp; Save</button>
   <span id="dump-status" class="dump-status-line"></span>
+</div>
+
+<!-- ── Velocity grid ─────────────────────────────────────────────────────── -->
+<div id="stats-panel">
+  <div class="label" style="margin-bottom:8px;">Velocity per Zone (median · min–max · hits)</div>
+  <table id="grid-table">
+    <thead>
+      <tr>
+        <th></th>
+        <th style="color:var(--z0);">Z0 center</th>
+        <th style="color:var(--z1);">Z1 mid-in</th>
+        <th style="color:var(--z2);">Z2 mid-out</th>
+        <th style="color:var(--z3);">Z3 outer</th>
+      </tr>
+    </thead>
+    <tbody id="grid-body"></tbody>
+  </table>
+  <div id="spread-bar"></div>
 </div>
 
 <!-- ── Saved Sessions ─────────────────────────────────────────────────────── -->
