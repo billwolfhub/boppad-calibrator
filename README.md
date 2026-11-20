@@ -1,5 +1,7 @@
 # BopPad Calibrator
 
+**Live app: https://billwolfhub.github.io/boppad-calibrator/**
+
 A browser-based tool for diagnosing and comparing KMI BopPad behavior across multiple units. Captures preset configuration via SysEx dump, records velocity response per quadrant and zone, and compares sessions side by side.
 
 ## Features
