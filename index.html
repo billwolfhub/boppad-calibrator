@@ -1,0 +1,1402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>BopPad Calibrator</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:      #0e0f11;
+  --bg2:     #15171a;
+  --bg3:     #1c1f23;
+  --border:  #2a2d32;
+  --border2: #3a3d44;
+  --text:    #e8eaed;
+  --text2:   #9aa0aa;
+  --text3:   #5a6070;
+  --accent:  #e8673a;
+  --green:   #4caf82;
+  --blue:    #5b8fe8;
+  --yellow:  #d4a843;
+  --mono:    'Courier New', monospace;
+  --z0: #4caf82;
+  --z1: #5b8fe8;
+  --z2: #d4a843;
+  --z3: #e8673a;
+}
+body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; font-size: 14px; min-height: 100vh; }
+h1 { font-size: 18px; font-weight: 700; }
+h2 { font-size: 15px; font-weight: 700; }
+.label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text3); margin-bottom: 4px; }
+.mono { font-family: var(--mono); }
+
+/* ── Config strip ── */
+#config-strip {
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 14px 20px; background: var(--bg2); border-bottom: 1px solid var(--border);
+}
+#config-row1 { display: flex; align-items: flex-end; gap: 20px; }
+#config-row1 h1 { margin-right: 8px; align-self: center; }
+#config-row2 { display: flex; align-items: flex-end; gap: 20px; flex-wrap: wrap; }
+.cfg-field { display: flex; flex-direction: column; }
+.cfg-field select, .cfg-field input {
+  background: var(--bg3); color: var(--text); border: 1px solid var(--border2);
+  border-radius: 4px; padding: 5px 8px; font-family: var(--mono); font-size: 12px;
+  min-width: 80px;
+}
+.cfg-field select { min-width: 180px; }
+.thresh-group { display: flex; gap: 4px; }
+.thresh-group input { min-width: 44px; width: 44px; }
+#midi-status { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text3); margin-left: auto; }
+#status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text3); }
+#status-dot.connected { background: var(--green); box-shadow: 0 0 6px var(--green); }
+
+/* ── Zone analyzer ── */
+#main { display: flex; flex-direction: column; gap: 20px; padding: 20px; }
+#top-row { display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap; }
+#pad-wrap { flex: 0 0 auto; display: flex; gap: 16px; align-items: flex-start; }
+.pad-device { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.pad-device-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text3); font-family: var(--mono); }
+#stats-panel { flex: 1; min-width: 360px; }
+#grid-table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 12px; }
+#grid-table th { padding: 6px 10px; text-align: center; font-weight: 400; border-bottom: 1px solid var(--border); }
+#grid-table th:first-child { text-align: left; }
+#grid-table td { padding: 6px 10px; text-align: center; border-bottom: 1px solid var(--bg3); color: var(--text2); }
+#grid-table td:first-child { text-align: left; color: var(--text2); }
+#grid-table td.has-data { color: var(--text); }
+#spread-bar { margin-top: 10px; padding: 8px 12px; background: var(--bg3); border-radius: 4px; font-family: var(--mono); font-size: 12px; color: var(--text2); }
+.spread-row { margin-bottom: 2px; }
+.spread-val { font-weight: 700; }
+.spread-val.ok   { color: var(--green); }
+.spread-val.warn { color: var(--yellow); }
+.spread-val.bad  { color: var(--accent); }
+#zone-legend { display: flex; flex-direction: column; gap: 6px; padding-top: 2px; }
+.legend-item { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text2); }
+.legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+/* MIDI trace */
+#midi-trace { display: flex; flex-direction: column; }
+#midi-trace .trace-hdr {
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;
+}
+#trace-body {
+  height: 200px; overflow-y: auto; background: var(--bg2);
+  border: 1px solid var(--border); border-radius: 4px;
+  font-family: var(--mono); font-size: 11px;
+}
+.tr-hdr {
+  display: grid;
+  grid-template-columns: 54px 20px 90px 34px 30px 36px 1fr;
+  gap: 0 6px; padding: 4px 8px;
+  border-bottom: 2px solid var(--border2);
+  color: var(--text3); font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em;
+  position: sticky; top: 0; background: var(--bg2); z-index: 1;
+}
+.tr-row {
+  display: grid;
+  grid-template-columns: 54px 20px 90px 34px 30px 36px 1fr;
+  gap: 0 6px; padding: 2px 8px; border-bottom: 1px solid var(--bg3);
+  align-items: baseline;
+}
+.tr-row.tr-gap { border-top: 1px solid var(--border2); }
+.tr-dt   { color: var(--text3); }
+.tr-dir  { color: var(--text3); text-align: center; }
+.tr-note { color: var(--text); }
+.tr-q    { color: var(--text2); text-align: center; }
+.tr-z    { color: var(--text2); text-align: center; }
+.tr-vel  { color: var(--green); text-align: right; }
+.tr-extra { color: var(--text3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tr-out .tr-note { color: var(--text3); font-style: italic; }
+.tr-out .tr-vel, .tr-out .tr-q, .tr-out .tr-z { color: var(--text3); }
+
+/* ── Bottom controls ── */
+#controls {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 12px 20px; background: var(--bg2); border-top: 1px solid var(--border);
+}
+.btn {
+  padding: 6px 16px; border-radius: 4px; border: 1px solid var(--border2);
+  background: var(--bg3); color: var(--text2); cursor: pointer; font-size: 12px;
+  font-family: system-ui, sans-serif;
+}
+.btn:hover { border-color: var(--text3); color: var(--text); }
+.btn.primary { border-color: var(--blue); color: var(--blue); }
+.btn.primary:hover { background: var(--blue); color: #0e0f11; }
+.btn.danger { border-color: var(--accent); color: var(--accent); }
+.btn.danger:hover { background: var(--accent); color: #0e0f11; }
+.btn.small { padding: 2px 8px; font-size: 11px; }
+.btn.record-on { border-color: var(--accent); color: var(--accent); background: rgba(232,103,58,0.12); }
+.btn.record-on:hover { background: var(--accent); color: #0e0f11; }
+.ctrl-sep { width: 1px; height: 20px; background: var(--border2); margin: 0 4px; align-self: center; }
+.dump-status-line { font-size: 11px; font-family: var(--mono); color: var(--text3); }
+.dump-status-line.ok   { color: var(--green); }
+.dump-status-line.wait { color: var(--yellow); }
+.dump-status-line.err  { color: var(--accent); }
+
+/* ── Saved Sessions ── */
+#sessions-section { border-top: 2px solid var(--border); }
+#sessions-header {
+  display: flex; align-items: center; gap: 12px; padding: 12px 20px;
+  background: var(--bg2); border-bottom: 1px solid var(--border);
+}
+#sessions-list { }
+.session-row {
+  display: flex; align-items: center; gap: 10px; padding: 8px 20px;
+  border-bottom: 1px solid var(--bg3); font-family: var(--mono); font-size: 12px;
+}
+.session-row:hover { background: var(--bg3); }
+.sess-name { flex: 1; color: var(--text); }
+.sess-preset { color: var(--blue); min-width: 60px; }
+.sess-fw { color: var(--text3); min-width: 80px; font-family: var(--mono); font-size: 11px; }
+.sess-age { color: var(--text3); min-width: 80px; }
+.empty-msg { padding: 16px 20px; color: var(--text3); font-family: var(--mono); font-size: 12px; }
+
+/* ── Compare section ── */
+#compare-section { border-top: 2px solid var(--border); }
+#compare-header {
+  display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap;
+  padding: 14px 20px; background: var(--bg2); border-bottom: 1px solid var(--border);
+}
+#compare-header h2 { align-self: center; margin-right: 4px; }
+#compare-summary-bar {
+  padding: 8px 20px; font-family: var(--mono); font-size: 12px;
+  background: var(--bg3); border-bottom: 1px solid var(--border);
+  display: none;
+}
+#compare-summary-bar.visible { display: block; }
+#compare-summary { font-weight: 700; }
+#compare-summary.ok  { color: var(--green); }
+#compare-summary.bad { color: var(--accent); }
+#compare-filter-bar {
+  display: none; align-items: center; gap: 16px; flex-wrap: wrap;
+  padding: 8px 20px; background: var(--bg2); border-bottom: 1px solid var(--border);
+}
+#compare-filter-bar.visible { display: flex; }
+.filter-label { font-size: 12px; color: var(--text2); display: flex; align-items: center; gap: 6px; cursor: pointer; }
+.filter-label input { cursor: pointer; }
+#compare-actions {
+  display: none; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 10px 20px; background: var(--bg3); border-bottom: 1px solid var(--border);
+}
+#compare-actions.visible { display: flex; }
+#compare-actions .sep { width: 1px; height: 20px; background: var(--border2); margin: 0 4px; }
+#compare-table-wrap { padding: 20px; display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+.compare-section { flex: 1; min-width: 420px; }
+.compare-section-hdr {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text3); padding: 8px 0 6px; display: flex; align-items: center; gap: 8px;
+  border-bottom: 1px solid var(--border); margin-bottom: 2px;
+}
+.diff-badge {
+  background: var(--accent); color: #fff; border-radius: 3px; padding: 1px 7px;
+  font-size: 10px; font-weight: 700; text-transform: none; letter-spacing: 0;
+}
+.compare-tbl { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 11px; }
+.compare-tbl th { padding: 4px 8px; text-align: left; font-weight: 400; color: var(--text3); border-bottom: 1px solid var(--border); }
+.compare-tbl td { padding: 3px 8px; border-bottom: 1px solid var(--bg3); color: var(--text2); }
+.compare-tbl td.pname { color: var(--text3); font-size: 10px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.compare-tbl tr.differs td { background: rgba(232,103,58,0.08); }
+.compare-tbl tr.differs td:not(.pname) { color: var(--accent); font-weight: 700; }
+
+/* Velocity compare */
+#vel-compare-wrap { padding: 0 20px 20px; }
+#vel-compare-wrap h3 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text3); margin-bottom: 10px; }
+.vel-tbl { border-collapse: collapse; font-family: var(--mono); font-size: 12px; }
+.vel-tbl th { padding: 5px 12px; text-align: center; font-weight: 400; color: var(--text3); border-bottom: 1px solid var(--border); }
+.vel-tbl th:first-child { text-align: left; min-width: 80px; }
+.vel-tbl td { padding: 5px 12px; text-align: center; border-bottom: 1px solid var(--bg3); }
+.vel-tbl td:first-child { text-align: left; color: var(--text3); font-size: 11px; }
+.vel-cell { display: flex; flex-direction: column; align-items: center; gap: 1px; min-width: 80px; }
+.vel-ab { display: flex; gap: 6px; font-size: 12px; }
+.vel-a { color: var(--blue); }
+.vel-b { color: var(--yellow); }
+.vel-delta { font-size: 11px; font-weight: 700; }
+.vel-delta.ok   { color: var(--green); }
+.vel-delta.warn { color: var(--yellow); }
+.vel-delta.bad  { color: var(--accent); }
+.vel-nodata { color: var(--text3); font-size: 11px; }
+</style>
+</head>
+<body>
+
+<!-- ── Config strip ──────────────────────────────────────────────────────── -->
+<div id="config-strip">
+  <div id="config-row1">
+    <h1>BopPad Calibrator</h1>
+    <div class="cfg-field">
+      <div class="label">Nickname</div>
+      <input id="dev-name" type="text" placeholder="BopPad" style="min-width:100px;">
+    </div>
+    <div class="cfg-field">
+      <div class="label">MIDI In</div>
+      <select id="midi-in"><option value="">— select input —</option></select>
+    </div>
+    <div id="midi-status">
+      <div id="status-dot"></div>
+      <span id="status-text">no MIDI</span>
+    </div>
+  </div>
+
+  <div id="config-row2">
+    <div class="cfg-field">
+      <div class="label">MIDI Out</div>
+      <select id="midi-out"><option value="">— select output —</option></select>
+    </div>
+    <div class="cfg-field">
+      <div class="label">Zone CC#</div>
+      <input id="zone-cc" type="number" min="1" max="127" value="20" style="min-width:60px;width:60px;">
+    </div>
+    <div class="cfg-field">
+      <div class="label">Zone Thresholds (Z0–Z3)</div>
+      <div class="thresh-group">
+        <input id="thresh0" type="number" min="0" max="127" value="1">
+        <input id="thresh1" type="number" min="0" max="127" value="30">
+        <input id="thresh2" type="number" min="0" max="127" value="64">
+        <input id="thresh3" type="number" min="0" max="127" value="95">
+      </div>
+    </div>
+    <div class="cfg-field">
+      <div class="label">Q1–Q4 Notes</div>
+      <div class="thresh-group">
+        <input id="qch0" type="number" min="0" max="127" value="30">
+        <input id="qch1" type="number" min="0" max="127" value="35">
+        <input id="qch2" type="number" min="0" max="127" value="40">
+        <input id="qch3" type="number" min="0" max="127" value="45">
+      </div>
+    </div>
+    <div class="cfg-field">
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+        <input type="checkbox" id="raw-mode"> <span class="label" style="margin:0;">Raw mode</span>
+      </label>
+      <span style="font-size:11px;color:var(--text3);font-family:var(--mono);">ignore zone CC · show all notes</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── Zone analyzer ─────────────────────────────────────────────────────── -->
+<div id="main">
+  <div id="top-row">
+    <div id="pad-wrap"></div>
+    <div id="zone-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--z0);"></div> Z0 — center</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--z1);"></div> Z1 — mid-inner</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--z2);"></div> Z2 — mid-outer</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--z3);"></div> Z3 — outer edge</div>
+    </div>
+  </div>
+
+  <div id="midi-trace">
+    <div class="trace-hdr">
+      <div class="label" style="margin:0;">MIDI Trace</div>
+      <button class="btn" style="padding:3px 10px;font-size:11px;" onclick="clearTrace()">Clear</button>
+    </div>
+    <div id="trace-body"></div>
+  </div>
+
+  <div id="stats-panel">
+    <div class="label" style="margin-bottom:8px;">Velocity per Zone (median · min–max · hits)</div>
+    <table id="grid-table">
+      <thead>
+        <tr>
+          <th></th>
+          <th style="color:var(--z0);">Z0 center</th>
+          <th style="color:var(--z1);">Z1 mid-in</th>
+          <th style="color:var(--z2);">Z2 mid-out</th>
+          <th style="color:var(--z3);">Z3 outer</th>
+        </tr>
+      </thead>
+      <tbody id="grid-body"></tbody>
+    </table>
+    <div id="spread-bar"></div>
+  </div>
+</div>
+
+<!-- ── Controls bar ───────────────────────────────────────────────────────── -->
+<div id="controls">
+  <button class="btn" id="record-btn" onclick="toggleRecording()">&#9679; Start Recording</button>
+  <button class="btn" onclick="resetData()">Reset Data</button>
+  <div class="ctrl-sep"></div>
+  <button class="btn" onclick="exportCSV()">Export CSV</button>
+  <button class="btn" onclick="sendRecalibrate()">Recalibrate</button>
+  <button class="btn danger" onclick="confirmFactoryReset()">Factory Reset</button>
+  <div class="ctrl-sep"></div>
+  <button class="btn primary" id="dump-btn" onclick="requestDump()">Dump &amp; Save</button>
+  <span id="dump-status" class="dump-status-line"></span>
+</div>
+
+<!-- ── Saved Sessions ─────────────────────────────────────────────────────── -->
+<div id="sessions-section">
+  <div id="sessions-header">
+    <h2>Saved Sessions</h2>
+    <button class="btn danger small" onclick="clearAllSessions()">Clear All</button>
+  </div>
+  <div id="sessions-list"></div>
+</div>
+
+<!-- ── Compare section ────────────────────────────────────────────────────── -->
+<div id="compare-section">
+  <div id="compare-header">
+    <h2>Compare</h2>
+
+    <div class="cfg-field">
+      <div class="label">Session A</div>
+      <select id="cmp-a" style="min-width:200px;">
+        <option value="">— select session —</option>
+        <option value="factory">Factory Default</option>
+      </select>
+    </div>
+
+    <div class="cfg-field">
+      <div class="label">Session B</div>
+      <select id="cmp-b" style="min-width:200px;">
+        <option value="">— select session —</option>
+        <option value="factory">Factory Default</option>
+      </select>
+    </div>
+
+    <button class="btn primary" onclick="runCompare()">Compare</button>
+  </div>
+
+  <div id="compare-summary-bar">
+    <span id="compare-summary"></span>
+  </div>
+
+  <div id="compare-filter-bar">
+    <label class="filter-label">
+      <input type="checkbox" id="diffs-only" checked onchange="renderCompareTable()"> Diffs only
+    </label>
+    <label class="filter-label">
+      <input type="checkbox" id="hide-reserved" checked onchange="renderCompareTable()"> Hide matching reserved bytes
+    </label>
+  </div>
+
+  <div id="compare-actions">
+    <button class="btn" onclick="exportPresetCSV()">Export Preset CSV</button>
+    <div class="sep"></div>
+    <span style="font-size:11px;color:var(--text3);font-family:var(--mono);">Send to device:</span>
+    <button class="btn danger" onclick="sendSessionToDevice('a')">Send A to device</button>
+    <button class="btn danger" onclick="sendSessionToDevice('b')">Send B to device</button>
+  </div>
+
+  <div id="compare-table-wrap"></div>
+  <div id="vel-compare-wrap"></div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+// Zone Analyzer
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ── State ────────────────────────────────────────────────────────────────────
+const samples = Array.from({length:4}, () => Array.from({length:4}, () => []));
+const lastZoneCC = new Uint8Array(17); // ch 1-16
+const eventLog = [];
+let activeInput  = null;
+let activeOutput = null;
+let dumpPending  = false;
+let lastDump     = null; // most recently decoded preset
+let sessions     = []; // loaded from localStorage
+let recording    = false;
+
+// ── Config readers ───────────────────────────────────────────────────────────
+function getZoneCC()     { return parseInt(document.getElementById('zone-cc').value) || 0; }
+function getThresholds() { return [0,1,2,3].map(i => parseInt(document.getElementById('thresh'+i).value) || 0); }
+function getQNotes()     { return [0,1,2,3].map(i => parseInt(document.getElementById('qch'+i).value) || 0); }
+function getDevName()    { return document.getElementById('dev-name').value.trim() || 'BopPad'; }
+
+// ── Zone decode ──────────────────────────────────────────────────────────────
+function decodeZone(ccVal, thresholds) {
+  for (let z = 3; z >= 0; z--) {
+    if (ccVal >= thresholds[z]) return z;
+  }
+  return 0;
+}
+
+// ── Median ───────────────────────────────────────────────────────────────────
+function median(arr) {
+  if (!arr.length) return null;
+  const s = [...arr].sort((a,b) => a-b);
+  const m = Math.floor(s.length/2);
+  return s.length % 2 === 0 ? Math.round((s[m-1]+s[m])/2) : s[m];
+}
+
+// ── Record a hit ─────────────────────────────────────────────────────────────
+function recordHit(quadrant, zone, velocity) {
+  samples[quadrant][zone].push(velocity);
+  eventLog.push({ t: Date.now(), q: quadrant, z: zone, v: velocity });
+  renderGrid();
+  colorSectors();
+  updateSpread();
+  flashBadge(quadrant, zone, velocity);
+}
+
+// ── Grid ─────────────────────────────────────────────────────────────────────
+function renderGrid() {
+  const qNotes = getQNotes();
+  const tbody = document.getElementById('grid-body');
+  tbody.innerHTML = '';
+  for (let q = 0; q < 4; q++) {
+    const tr = document.createElement('tr');
+    const th = document.createElement('td');
+    th.textContent = `Q${q+1}  n${qNotes[q]}`;
+    tr.appendChild(th);
+    for (let z = 0; z < 4; z++) {
+      const td = document.createElement('td');
+      const arr = samples[q][z];
+      if (arr.length < 3) {
+        td.textContent = '—';
+      } else {
+        const med = median(arr), mn = Math.min(...arr), mx = Math.max(...arr);
+        td.classList.add('has-data');
+        td.innerHTML = `${med}<span style="color:var(--text3);font-size:10px;"> ${mn}–${mx} (${arr.length})</span>`;
+      }
+      tr.appendChild(td);
+    }
+    tbody.appendChild(tr);
+  }
+}
+
+// ── SVG Pad Diagram ───────────────────────────────────────────────────────────
+const SVG_NS = 'http://www.w3.org/2000/svg';
+const CX = 110, CY = 110, SVG_SIZE = 220;
+const ZONE_RADII  = [[0,26],[26,50],[50,74],[74,96]];
+const QUAD_ANGLES = [[-89,-1],[1,89],[91,179],[181,269]];
+const ZONE_COLORS = ['#4caf82','#5b8fe8','#d4a843','#e8673a'];
+
+function arcPath(rInner, rOuter, a0, a1) {
+  const r = d => d * Math.PI / 180;
+  const px = (rad,d) => CX + rad*Math.cos(r(d));
+  const py = (rad,d) => CY + rad*Math.sin(r(d));
+  const lg = (a1-a0) > 180 ? 1 : 0;
+  if (rInner === 0)
+    return `M ${CX} ${CY} L ${px(rOuter,a0)} ${py(rOuter,a0)} A ${rOuter} ${rOuter} 0 ${lg} 1 ${px(rOuter,a1)} ${py(rOuter,a1)} Z`;
+  return `M ${px(rOuter,a0)} ${py(rOuter,a0)} A ${rOuter} ${rOuter} 0 ${lg} 1 ${px(rOuter,a1)} ${py(rOuter,a1)} L ${px(rInner,a1)} ${py(rInner,a1)} A ${rInner} ${rInner} 0 ${lg} 0 ${px(rInner,a0)} ${py(rInner,a0)} Z`;
+}
+
+function sectorCenter(r0, r1, a0, a1) {
+  const mid = (a0+a1)/2, r = (r0+r1)/2, rad = mid*Math.PI/180;
+  return { x: CX + r*Math.cos(rad), y: CY + r*Math.sin(rad) };
+}
+
+function buildSVG() {
+  const container = document.createElement('div');
+  container.className = 'pad-device';
+  const lbl = document.createElement('div');
+  lbl.className = 'pad-device-label';
+  lbl.id = 'pad-label-0';
+  lbl.textContent = 'BopPad';
+  container.appendChild(lbl);
+
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.setAttribute('id', 'pad-svg-0');
+  svg.setAttribute('width', SVG_SIZE); svg.setAttribute('height', SVG_SIZE);
+  svg.setAttribute('viewBox', `0 0 ${SVG_SIZE} ${SVG_SIZE}`);
+  const bg = document.createElementNS(SVG_NS, 'circle');
+  bg.setAttribute('cx',CX); bg.setAttribute('cy',CY); bg.setAttribute('r',97); bg.setAttribute('fill','#1c1f23');
+  svg.appendChild(bg);
+
+  for (let q = 0; q < 4; q++) for (let z = 0; z < 4; z++) {
+    const [r0,r1] = ZONE_RADII[z], [a0,a1] = QUAD_ANGLES[q];
+    const path = document.createElementNS(SVG_NS,'path');
+    path.setAttribute('id',`sector-0-${q}-${z}`);
+    path.setAttribute('d', arcPath(r0,r1,a0,a1));
+    path.setAttribute('fill', ZONE_COLORS[z]);
+    path.setAttribute('fill-opacity','0.08');
+    path.setAttribute('stroke','#0e0f11'); path.setAttribute('stroke-width','1');
+    svg.appendChild(path);
+  }
+
+  const Q_LABELS = ['Q1','Q2','Q3','Q4'];
+  for (let q = 0; q < 4; q++) {
+    const [a0,a1] = QUAD_ANGLES[q];
+    const {x,y} = sectorCenter(74,96,a0,a1);
+    const txt = document.createElementNS(SVG_NS,'text');
+    txt.setAttribute('x',x); txt.setAttribute('y',y);
+    txt.setAttribute('text-anchor','middle'); txt.setAttribute('dominant-baseline','central');
+    txt.setAttribute('fill','#5a6070'); txt.setAttribute('font-size','10');
+    txt.setAttribute('font-family','system-ui, sans-serif');
+    txt.textContent = Q_LABELS[q];
+    svg.appendChild(txt);
+  }
+
+  const badges = document.createElementNS(SVG_NS,'g');
+  badges.setAttribute('id','badges-0');
+  svg.appendChild(badges);
+  container.appendChild(svg);
+  document.getElementById('pad-wrap').appendChild(container);
+}
+
+function colorSectors() {
+  for (let q = 0; q < 4; q++) for (let z = 0; z < 4; z++) {
+    const el = document.getElementById(`sector-0-${q}-${z}`);
+    if (!el) continue;
+    const arr = samples[q][z];
+    if (arr.length < 5) { el.setAttribute('fill-opacity','0.08'); }
+    else { el.setAttribute('fill-opacity', (0.15 + (median(arr)/127)*0.55).toFixed(2)); }
+  }
+}
+
+function updateSpread() {
+  const bar = document.getElementById('spread-bar');
+  bar.innerHTML = '';
+  const spreadVals = [];
+  for (let q = 0; q < 4; q++) {
+    const meds = [];
+    for (let z = 0; z < 4; z++) if (samples[q][z].length >= 3) meds.push(median(samples[q][z]));
+    if (meds.length >= 2) spreadVals.push(Math.max(...meds) - Math.min(...meds));
+  }
+  const row = document.createElement('div');
+  row.className = 'spread-row';
+  let totalHits = 0;
+  for (let q = 0; q < 4; q++) for (let z = 0; z < 4; z++) totalHits += samples[q][z].length;
+  if (!spreadVals.length) {
+    row.innerHTML = `<span class="spread-val">— (need hits in 2+ zones)</span>`;
+  } else {
+    const avg = Math.round(spreadVals.reduce((a,b)=>a+b,0)/spreadVals.length);
+    const cls = avg > 30 ? 'bad' : avg > 15 ? 'warn' : 'ok';
+    row.innerHTML = `<span class="spread-val ${cls}">+${avg} vel outer→center</span>  · ${totalHits} hits`;
+  }
+  bar.appendChild(row);
+}
+
+function flashBadge(q, z, velocity) {
+  const [a0,a1] = QUAD_ANGLES[q], [r0,r1] = ZONE_RADII[z];
+  const {x,y} = sectorCenter(r0===0?0:r0, r1, a0, a1);
+  const g = document.createElementNS(SVG_NS,'g');
+  const c = document.createElementNS(SVG_NS,'circle');
+  c.setAttribute('cx',x); c.setAttribute('cy',y); c.setAttribute('r',13);
+  c.setAttribute('fill', ZONE_COLORS[z]); c.setAttribute('opacity','0.9');
+  g.appendChild(c);
+  const txt = document.createElementNS(SVG_NS,'text');
+  txt.setAttribute('x',x); txt.setAttribute('y',y);
+  txt.setAttribute('text-anchor','middle'); txt.setAttribute('dominant-baseline','central');
+  txt.setAttribute('fill','#0e0f11'); txt.setAttribute('font-size','10'); txt.setAttribute('font-weight','700');
+  txt.setAttribute('font-family','system-ui, sans-serif');
+  txt.textContent = velocity;
+  g.appendChild(txt);
+  document.getElementById('badges-0').appendChild(g);
+  let start = null;
+  (function fade(ts) {
+    if (!start) start = ts;
+    const p = (ts-start)/500;
+    if (p >= 1) { g.remove(); return; }
+    g.setAttribute('opacity', 1-p);
+    requestAnimationFrame(fade);
+  })(performance.now());
+}
+
+function exportCSV() {
+  const qNotes = getQNotes();
+  const rows = ['timestamp_ms,device,quadrant,note,zone,velocity'];
+  for (const {t,q,z,v} of eventLog) {
+    rows.push(`${t},${getDevName()},Q${q+1},${qNotes[q]},Z${z},${v}`);
+  }
+  downloadBlob(rows.join('\n'), 'text/csv', `boppad-zones-${Date.now()}.csv`);
+}
+
+function toggleRecording() {
+  recording = !recording;
+  const btn = document.getElementById('record-btn');
+  if (recording) {
+    btn.textContent = '⏹ Stop Recording';
+    btn.classList.add('record-on');
+  } else {
+    btn.textContent = '● Start Recording';
+    btn.classList.remove('record-on');
+  }
+}
+
+function resetData() {
+  for (let q = 0; q < 4; q++) for (let z = 0; z < 4; z++) samples[q][z] = [];
+  eventLog.length = 0;
+  lastZoneCC.fill(0);
+  renderGrid();
+  colorSectors();
+  updateSpread();
+  setConnected(false);
+}
+
+function sendRecalibrate() {
+  if (!activeOutput) { alert('Select an output first'); return; }
+  activeOutput.send([0xB0, 121, 0]);
+  addTrace('out', '→ CC121 (recalibrate)');
+}
+
+// ── Self-test ────────────────────────────────────────────────────────────────
+(function selfTest() {
+  const thresh = [1,30,64,95];
+  const cases = [[127,3],[95,3],[94,2],[64,2],[63,1],[30,1],[29,0],[1,0],[0,0]];
+  let pass = true;
+  cases.forEach(([cc,want]) => { if (decodeZone(cc,thresh) !== want) { console.error(`decodeZone(${cc}) failed`); pass=false; } });
+  if (pass) console.log('decodeZone self-test passed');
+})();
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MIDI Trace
+// ═══════════════════════════════════════════════════════════════════════════
+
+const traceLog = [];
+const MAX_TRACE = 60;
+
+// addTrace(direction, message)
+// direction: 'in' | 'out'
+// message: display string
+// optional extra fields for note events: q, z
+function addTrace(dir, msg, q, z) {
+  traceLog.unshift({ t: performance.now(), dir, msg, q: q ?? -1, z: z ?? -1 });
+  if (traceLog.length > MAX_TRACE) traceLog.pop();
+  renderTrace();
+}
+
+function clearTrace() {
+  traceLog.length = 0;
+  renderTrace();
+}
+
+// Parse a trace message string into columns: { note, q, z, vel, extra }
+function parseTraceMsg(msg, dir) {
+  if (dir === 'out') return { note: msg, q: '', z: '', vel: '', extra: '' };
+  // Note-on: "n30  Q1  Z2  v87"
+  const noteMatch = msg.match(/^n(\d+)\s+Q([1-4\?])\s+Z(\d)\s+v(\d+)/);
+  if (noteMatch) return { note: `n${noteMatch[1]}`, q: `Q${noteMatch[2]}`, z: `Z${noteMatch[3]}`, vel: noteMatch[4], extra: '' };
+  // CC: "CC20=50  Z2"
+  const ccMatch = msg.match(/^CC(\d+)=(\d+)\s+Z(\d)/);
+  if (ccMatch) return { note: `CC${ccMatch[1]}`, q: '', z: `Z${ccMatch[3]}`, vel: ccMatch[2], extra: '' };
+  // Everything else
+  return { note: msg, q: '', z: '', vel: '', extra: '' };
+}
+
+function renderTrace() {
+  const body = document.getElementById('trace-body');
+  if (!body) return;
+  body.innerHTML = '';
+
+  // Sticky header
+  const hdr = document.createElement('div');
+  hdr.className = 'tr-hdr';
+  hdr.innerHTML = '<span>Δt</span><span></span><span>Event</span><span>Q</span><span>Z</span><span>Vel</span><span></span>';
+  body.appendChild(hdr);
+
+  for (let i = 0; i < traceLog.length; i++) {
+    const ev = traceLog[i];
+    const prev = traceLog[i + 1];
+    const dt = prev ? ev.t - prev.t : null;
+    const dtStr = dt === null || dt > 400 ? '●' : `+${Math.round(dt)}ms`;
+    const dirGlyph = ev.dir === 'out' ? '▲' : '▼';
+
+    const { note, q, z, vel, extra } = parseTraceMsg(ev.msg, ev.dir);
+
+    const row = document.createElement('div');
+    row.className = 'tr-row';
+    if (dt === null || dt > 400) row.classList.add('tr-gap');
+    if (ev.dir === 'out') row.classList.add('tr-out');
+
+    row.innerHTML =
+      `<span class="tr-dt">${dtStr}</span>` +
+      `<span class="tr-dir">${dirGlyph}</span>` +
+      `<span class="tr-note">${note}</span>` +
+      `<span class="tr-q">${q}</span>` +
+      `<span class="tr-z">${z}</span>` +
+      `<span class="tr-vel">${vel}</span>` +
+      `<span class="tr-extra">${extra}</span>`;
+    body.appendChild(row);
+  }
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Preset Model
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ── Preset model key order (MuseKinetics/boppad-editor presetModel3.json) ──
+// 448 keys total: 16 global + 4×104 quadrant + 16 name
+const PRESET_MODEL_KEYS = (() => {
+  const k = [];
+  k.push('preset_num','firmware_v_major','firmware_v_minor','firmware_v_patch');
+  k.push('sensitivity_global','multitouch_enable','unison','crosstalk','expander');
+  k.push('change_filter');
+  for (let i=1;i<=6;i++) k.push(`reservedBytes[${i}]`);
+  for (const q of ['a','b','c','d']) {
+    k.push(`quadrant_${q}_on_amp`,`quadrant_${q}_off_amp`,`quadrant_${q}_on_length`,
+            `quadrant_${q}_off_length`,`quadrant_${q}_delta_amp`,`quadrant_${q}_delta_depth`);
+    k.push(`quadrant_${q}_debounce_refill`,`quadrant_${q}_suppress_refill`);
+    k.push(`quadrant_${q}_gain`);
+    k.push(`quadrant_${q}_channel`,`quadrant_${q}_bank_select`,`quadrant_${q}_program_change`);
+    k.push(`quadrant_${q}_full_vol_change`,`quadrant_${q}_velocity_override`);
+    for (let i=0;i<=11;i++) k.push(`quadrant_${q}_reservedBytes[${i}]`);
+    for (let i=1;i<=6;i++) k.push(`quadrant_${q}_note_${i}`);
+    for (let m=1;m<=6;m++) {
+      k.push(`quadrant_${q}_modline_${m}_message_type`,
+              `quadrant_${q}_modline_${m}_gain_msb`,`quadrant_${q}_modline_${m}_gain_lsb`,
+              `quadrant_${q}_modline_${m}_max`,`quadrant_${q}_modline_${m}_min`,
+              `quadrant_${q}_modline_${m}_offset`,`quadrant_${q}_modline_${m}_source`,
+              `quadrant_${q}_modline_${m}_table`);
+      for (let i=0;i<=3;i++) k.push(`quadrant_${q}_modline_${m}_reservedModBytes[${i}]`);
+    }
+  }
+  for (let i=0;i<=15;i++) k.push(`presetName[${i}]`);
+  return k;
+})();
+
+// ── SysEx request: edit buffer dump (MuseKinetics/boppad-editor messages.json) ──
+const MSG_PRESET_DUMP_BUFFER = new Uint8Array([240, 0, 1, 95, 122, 117, 0, 1, 51, 0, 247]);
+
+// ── Factory default values (MuseKinetics/boppad-editor presetModel3.json) ───
+const PRESET_DEFAULTS = (() => {
+  const d = {};
+  d.preset_num = 1;
+  d.firmware_v_major = 3; d.firmware_v_minor = 0; d.firmware_v_patch = 0;
+  d.sensitivity_global = 16;
+  d.multitouch_enable = -1; d.unison = -1; d.crosstalk = 50; d.expander = -1;
+  d.change_filter = 1;
+  for (let i = 1; i <= 6; i++) d[`reservedBytes[${i}]`] = -1;
+
+  const qd = { a:{delta_amp:6,channel:0}, b:{delta_amp:8,channel:1}, c:{delta_amp:8,channel:2}, d:{delta_amp:8,channel:3} };
+  for (const q of ['a','b','c','d']) {
+    d[`quadrant_${q}_on_amp`]=6; d[`quadrant_${q}_off_amp`]=4;
+    d[`quadrant_${q}_on_length`]=0; d[`quadrant_${q}_off_length`]=10;
+    d[`quadrant_${q}_delta_amp`]=qd[q].delta_amp; d[`quadrant_${q}_delta_depth`]=4;
+    d[`quadrant_${q}_debounce_refill`]=11; d[`quadrant_${q}_suppress_refill`]=5;
+    d[`quadrant_${q}_gain`]=100;
+    d[`quadrant_${q}_channel`]=qd[q].channel;
+    d[`quadrant_${q}_bank_select`]=-1; d[`quadrant_${q}_program_change`]=-1;
+    d[`quadrant_${q}_full_vol_change`]=-1; d[`quadrant_${q}_velocity_override`]=-1;
+    for (let i = 0; i <= 11; i++) d[`quadrant_${q}_reservedBytes[${i}]`] = -1;
+    for (let i = 1; i <= 6;  i++) d[`quadrant_${q}_note_${i}`] = -1;
+    for (let m = 1; m <= 6; m++) {
+      d[`quadrant_${q}_modline_${m}_message_type`] = m === 1 ? -5 : -1;
+      d[`quadrant_${q}_modline_${m}_gain_msb`]=0; d[`quadrant_${q}_modline_${m}_gain_lsb`]=100;
+      d[`quadrant_${q}_modline_${m}_max`]=127; d[`quadrant_${q}_modline_${m}_min`]=1;
+      d[`quadrant_${q}_modline_${m}_offset`]=0; d[`quadrant_${q}_modline_${m}_source`]=-1;
+      d[`quadrant_${q}_modline_${m}_table`]=0;
+      for (let i = 0; i <= 3; i++) d[`quadrant_${q}_modline_${m}_reservedModBytes[${i}]`] = -1;
+    }
+  }
+  for (let i = 0; i <= 15; i++) d[`presetName[${i}]`] = 0;
+  return d;
+})();
+
+// ── Decode BopPad SysEx preset ───────────────────────────────────────────────
+// Port of decodeBuild + byteDecode from MuseKinetics/boppad-editor presetFromSysex.js
+// 7-bit MIDI encoding: groups of 8 bytes; byte[7] holds the MSBs for bytes[0..6].
+function decodePreset(sysexData) {
+  const preset = {};
+  const buf = new Array(8).fill(0);
+  let byteCount = 0, packetLength = 0;
+
+  for (let idx = 0; idx < sysexData.length; idx++) {
+    const b = sysexData[idx];
+    if (b === 0xF0) {
+      byteCount = packetLength = 0;
+    } else if (b === 0xF7) {
+      break;
+    } else {
+      buf[byteCount++] = b;
+      if (byteCount === 8) {
+        // restore MSBs
+        for (let i = 0; i < 7; i++) {
+          if ((buf[7] & (1 << i)) > 0) {
+            buf[i] += 0x80;
+            if (buf[i] > 127) buf[i] -= 256; // sign-extend
+          }
+        }
+        byteCount = 0;
+        for (let i = 0; i < 7; i++) {
+          packetLength++;
+          if (packetLength >= 3) {
+            const offset = packetLength - 3;
+            if (offset < PRESET_MODEL_KEYS.length) {
+              const key = PRESET_MODEL_KEYS[offset];
+              let val = buf[i];
+              // gain fields are unsigned; undo sign-extension
+              if (key.includes('gain') && val < 0) val += 256;
+              preset[key] = val;
+            }
+          }
+          buf[i] = 0;
+        }
+      }
+    }
+  }
+  return preset;
+}
+
+// ── Encode preset to SysEx ───────────────────────────────────────────────────
+// Port of getSysex() from MuseKinetics/boppad-editor packages/boppad-js-api/src/jsonSysex.js
+// 7→8-bit encoding: collect 7 values; on every 7th, emit high-bits byte then continue.
+// high_bits is NOT reset between groups (matches original behavior).
+function encodePreset(preset) {
+  const PRESET_LENGTH = PRESET_MODEL_KEYS.length; // 448 for fw 3.x
+
+  let high_bits = 0, high_count = 0;
+  const encoded = [];
+
+  function encodedWrite(val) {
+    val = Number(val) & 0xFF;
+    high_bits |= (val & 0x80);
+    high_bits >>= 1;
+    encoded.push(val & 0x7F);
+    if (++high_count === 7) {
+      high_count = 0;
+      encoded.push(high_bits);
+      // Note: intentionally not resetting high_bits — matches original getSysex
+    }
+  }
+
+  function flush() {
+    while (high_count) encodedWrite(0);
+  }
+
+  // Encode: [PRESET_START, length_msb, length_lsb, v0..v447, sumByte, padding]
+  encodedWrite(0xA1);                       // PRESET_START
+  encodedWrite(PRESET_LENGTH >> 8);         // MSB (1)
+  encodedWrite(PRESET_LENGTH & 0xFF);       // LSB (192)
+
+  let sumByte = 0;
+  for (const key of PRESET_MODEL_KEYS) {
+    let val = preset[key] ?? 0;
+    if (typeof val === 'string') val = val.charCodeAt(0) || 0;
+    val = Number(val) & 0xFF;
+    encodedWrite(val);
+    sumByte = (sumByte + val) & 0xFF;
+  }
+
+  encodedWrite(sumByte);
+  flush();
+
+  // Full SysEx: raw header + packet type + encoded body + F7
+  return new Uint8Array([
+    0xF0, 0x00, 0x01, 0x5F, 0x7A, 0x75, 0x00, // F0 + manufacturer_id + product + format
+    0x01, 0x22, 0x20,                           // SX_PACKET_START + packet type (full write)
+    ...encoded,
+    0xF7
+  ]);
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Dump & Save
+// ═══════════════════════════════════════════════════════════════════════════
+
+function showDumpStatus(msg, cls) {
+  const el = document.getElementById('dump-status');
+  el.textContent = msg;
+  el.className = `dump-status-line${cls ? ' '+cls : ''}`;
+}
+
+function requestDump() {
+  if (!activeOutput) { showDumpStatus('no output selected', 'err'); return; }
+  dumpPending = true;
+  showDumpStatus('waiting...', 'wait');
+  addTrace('out', '→ dump request');
+  activeOutput.send(MSG_PRESET_DUMP_BUFFER);
+}
+
+function handleSysex(data) {
+  // Log all incoming SysEx for diagnostics
+  addTrace('in', `SysEx ${data.length}B`);
+  // BopPad preset dump: 522 bytes (fw 3.x) or 506 bytes (fw 2.x)
+  if (data.length !== 522 && data.length !== 506) return;
+  if (!dumpPending) return;
+
+  if (data.length === 506) {
+    showDumpStatus('fw 2.x not supported', 'err');
+    dumpPending = false;
+    return;
+  }
+
+  const preset = decodePreset(data);
+  const nKeys = Object.keys(preset).length;
+  dumpPending = false;
+  lastDump = preset;
+
+  // fw 3.0.0 stores preset_num 0-indexed; add 1 to match BopPad Editor labeling
+  const pnum = (() => {
+    const raw = preset['global_preset_num'] ?? preset['preset_num'];
+    return (raw !== undefined) ? raw + 1 : undefined;
+  })();
+  const presetLabel = pnum !== undefined ? `Preset ${pnum}` : 'unknown preset';
+
+
+  // Auto-save to sessions
+  const name = getDevName();
+  // Snapshot velocity samples (deep copy — arrays will be reset later)
+  const velSnapshot = samples.map(qArr => qArr.map(zArr => [...zArr]));
+  const hasVel = velSnapshot.some(q => q.some(z => z.length > 0));
+  const session = {
+    id: Date.now(),
+    nickname: name,
+    preset_num: pnum ?? 0,
+    ts: Date.now(),
+    data: preset,
+    velocity: hasVel ? velSnapshot : null
+  };
+  sessions.unshift(session);
+  if (sessions.length > 30) sessions.pop();
+  localStorage.setItem('boppad_sessions', JSON.stringify(sessions));
+  renderSessions();
+  renderComparePickers();
+
+  showDumpStatus(`${name} · ${presetLabel} · saved`, 'ok');
+  addTrace('in', `decoded ${nKeys} params · ${presetLabel}`);
+}
+
+function confirmFactoryReset() {
+  if (!activeOutput) { showDumpStatus('no output selected', 'error'); return; }
+  const name = document.getElementById('dev-name').value.trim() || 'this device';
+  if (!confirm(`Factory reset ${name}? This will overwrite the current preset with defaults.`)) return;
+  factoryReset();
+}
+
+function factoryReset() {
+  if (!activeOutput) { showDumpStatus('no output selected', 'error'); return; }
+  const sysex = encodePreset(PRESET_DEFAULTS);
+  activeOutput.send(sysex);
+  showDumpStatus('factory reset sent — dump to verify', 'wait');
+  addTrace('out', `→ factory reset SysEx ${sysex.length}B`);
+}
+
+function sendPresetToDevice(sessionIndex) {
+  const s = sessions[sessionIndex];
+  if (!s) { alert('Session not found.'); return; }
+  if (!activeOutput) { alert('Select an output first.'); return; }
+  const sysex = encodePreset(s.data);
+  activeOutput.send(sysex);
+  showDumpStatus(`sent "${s.nickname}" Preset ${s.preset_num} to device`, 'wait');
+  addTrace('out', `→ SysEx ${sysex.length}B (session: ${s.nickname})`);
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Sessions
+// ═══════════════════════════════════════════════════════════════════════════
+
+function formatAge(ts) {
+  const diff = Date.now() - ts;
+  if (diff < 60000) return 'just now';
+  if (diff < 3600000) return `${Math.floor(diff/60000)}m ago`;
+  if (diff < 86400000) return `${Math.floor(diff/3600000)}h ago`;
+  const d = new Date(ts);
+  return `${d.getMonth()+1}/${d.getDate()}/${d.getFullYear()}`;
+}
+
+function renderSessions() {
+  const list = document.getElementById('sessions-list');
+  if (!sessions.length) {
+    list.innerHTML = '<div class="empty-msg">No saved sessions yet — dump a BopPad to save one.</div>';
+    return;
+  }
+  list.innerHTML = '';
+  sessions.forEach((s, i) => {
+    const age = formatAge(s.ts);
+    const row = document.createElement('div');
+    row.className = 'session-row';
+    const fw = s.data ? `fw ${s.data.firmware_v_major ?? '?'}.${s.data.firmware_v_minor ?? '?'}.${s.data.firmware_v_patch ?? '?'}` : '';
+    row.innerHTML = `
+      <span class="sess-name">${escHtml(s.nickname)}</span>
+      <span class="sess-preset">Preset ${s.preset_num}</span>
+      <span class="sess-fw">${fw}</span>
+      <span class="sess-age">${age}</span>
+      <button class="btn small" onclick="pickCompare('a','${s.id}')">A</button>
+      <button class="btn small" onclick="pickCompare('b','${s.id}')">B</button>
+      <button class="btn small" onclick="exportSession(${i})">JSON</button>
+      <button class="btn small danger" onclick="deleteSession(${i})">&#x2715;</button>
+    `;
+    list.appendChild(row);
+  });
+}
+
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function deleteSession(i) {
+  sessions.splice(i, 1);
+  localStorage.setItem('boppad_sessions', JSON.stringify(sessions));
+  renderSessions();
+  renderComparePickers();
+}
+
+function clearAllSessions() {
+  if (!sessions.length) return;
+  if (!confirm('Delete all saved sessions?')) return;
+  sessions = [];
+  localStorage.removeItem('boppad_sessions');
+  renderSessions();
+  renderComparePickers();
+}
+
+function exportSession(i) {
+  const s = sessions[i];
+  const filename = `${s.nickname.replace(/\s+/g,'-')}-preset${s.preset_num+1}-${s.id}.json`;
+  downloadBlob(JSON.stringify(s.data, null, 2), 'application/json', filename);
+}
+
+function pickCompare(slot, sessionId) {
+  const sel = document.getElementById(`cmp-${slot}`);
+  sel.value = String(sessionId);
+}
+
+function renderComparePickers() {
+  for (const slot of ['a','b']) {
+    const sel = document.getElementById(`cmp-${slot}`);
+    const prev = sel.value;
+    sel.innerHTML = '<option value="">— select session —</option><option value="factory">Factory Default</option>';
+    sessions.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = String(s.id);
+      opt.textContent = `${s.nickname} · Preset ${s.preset_num} · ${formatAge(s.ts)}`;
+      sel.appendChild(opt);
+    });
+    // Restore selection by stable id
+    const opts = [...sel.options].map(o => o.value);
+    if (opts.includes(prev)) sel.value = prev;
+  }
+}
+
+function loadComparePreset(val) {
+  if (val === 'factory') return { preset: PRESET_DEFAULTS, label: 'Factory Default', velocity: null };
+  const s = sessions.find(s => String(s.id) === val);
+  if (!s) return null;
+  return { preset: s.data, label: `${s.nickname} · Preset ${s.preset_num}`, velocity: s.velocity ?? null };
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Compare
+// ═══════════════════════════════════════════════════════════════════════════
+
+function runCompare() {
+  const aVal = document.getElementById('cmp-a').value;
+  const bVal = document.getElementById('cmp-b').value;
+  if (!aVal || !bVal) { alert('Select two sessions to compare.'); return; }
+  if (aVal === bVal) { alert('Select two different sessions.'); return; }
+
+  const aResult = loadComparePreset(aVal);
+  const bResult = loadComparePreset(bVal);
+  if (!aResult || !bResult) { alert('Could not load one or both sessions.'); return; }
+
+  window.compareA      = aResult.preset;
+  window.compareB      = bResult.preset;
+  window.compareLabelA = aResult.label;
+  window.compareLabelB = bResult.label;
+  window.compareVelA   = aResult.velocity;
+  window.compareVelB   = bResult.velocity;
+
+  document.getElementById('compare-filter-bar').className = 'visible';
+  document.getElementById('compare-actions').className = 'visible';
+  renderCompareTable();
+  renderVelocityCompare();
+}
+
+function renderCompareTable() {
+  const p1 = window.compareA, p2 = window.compareB;
+  if (!p1 || !p2) return;
+
+  const lbl1 = window.compareLabelA || 'A';
+  const lbl2 = window.compareLabelB || 'B';
+
+  const diffsOnly    = document.getElementById('diffs-only').checked;
+  const hideReserved = document.getElementById('hide-reserved').checked;
+  const wrap = document.getElementById('compare-table-wrap');
+  wrap.innerHTML = '';
+
+  const globalKeys = PRESET_MODEL_KEYS.filter(k => !k.startsWith('quadrant_') && !k.startsWith('presetName'));
+  const sections = [
+    { label: 'Global', keys: globalKeys },
+    ...['a','b','c','d'].map((q,i) => ({
+      label: `Quadrant ${q.toUpperCase()} — Q${i+1}`,
+      keys: PRESET_MODEL_KEYS.filter(k => k.startsWith(`quadrant_${q}_`))
+    })),
+    // Preset Name bytes omitted — noise, not relevant to calibration
+  ];
+
+  let totalDiffs = 0;
+
+  for (const section of sections) {
+    const rows = [];
+    for (const key of section.keys) {
+      const v1 = p1[key] ?? '—', v2 = p2[key] ?? '—';
+      const differs = v1 !== v2;
+      const isReserved = key.includes('reserved');
+      if (diffsOnly && !differs) continue;
+      if (hideReserved && isReserved && !differs) continue;
+      rows.push({ key, v1, v2, differs });
+      if (differs) totalDiffs++;
+    }
+    if (!rows.length) continue;
+
+    const sec = document.createElement('div');
+    sec.className = 'compare-section';
+
+    const hdr = document.createElement('div');
+    hdr.className = 'compare-section-hdr';
+    const diffCount = rows.filter(r => r.differs).length;
+    hdr.innerHTML = `${section.label}` +
+      (diffCount > 0 ? ` <span class="diff-badge">${diffCount} diff${diffCount>1?'s':''}</span>` : '');
+    sec.appendChild(hdr);
+
+    const tbl = document.createElement('table');
+    tbl.className = 'compare-tbl';
+    tbl.innerHTML = `<thead><tr><th>Parameter</th><th>${escHtml(lbl1)}</th><th>${escHtml(lbl2)}</th></tr></thead>`;
+    const tbody = document.createElement('tbody');
+
+    for (const { key, v1, v2, differs } of rows) {
+      const tr = document.createElement('tr');
+      if (differs) tr.className = 'differs';
+      const shortKey = key
+        .replace(/^quadrant_[abcd]_/, '')
+        .replace(/^presetName/, 'name');
+      const td1 = document.createElement('td');
+      td1.className = 'pname'; td1.title = key; td1.textContent = shortKey;
+      const td2 = document.createElement('td'); td2.textContent = v1;
+      const td3 = document.createElement('td'); td3.textContent = v2;
+      tr.append(td1, td2, td3);
+      tbody.appendChild(tr);
+    }
+    tbl.appendChild(tbody);
+    sec.appendChild(tbl);
+    wrap.appendChild(sec);
+  }
+
+  // Summary bar
+  const bar = document.getElementById('compare-summary-bar');
+  const el  = document.getElementById('compare-summary');
+  bar.className = 'visible';
+  if (totalDiffs === 0) {
+    el.textContent = 'Presets are identical.';
+    el.className = 'ok';
+  } else {
+    el.textContent = `${totalDiffs} difference${totalDiffs>1?'s':''} found between "${lbl1}" and "${lbl2}".`;
+    el.className = 'bad';
+  }
+}
+
+function renderVelocityCompare() {
+  const wrap = document.getElementById('vel-compare-wrap');
+  const velA = window.compareVelA;
+  const velB = window.compareVelB;
+  const labelA = window.compareLabelA || 'A';
+  const labelB = window.compareLabelB || 'B';
+  const qNotes = getQNotes();
+
+  if (!velA && !velB) {
+    wrap.innerHTML = '';
+    return;
+  }
+
+  const zoneLabels = ['Z0 center', 'Z1 mid-in', 'Z2 mid-out', 'Z3 outer'];
+  const zoneColors = ['var(--z0)', 'var(--z1)', 'var(--z2)', 'var(--z3)'];
+
+  let html = `<h3>Velocity Comparison &nbsp;<span style="color:var(--blue);font-weight:400">${labelA}</span> vs <span style="color:var(--yellow);font-weight:400">${labelB}</span></h3>`;
+  html += `<table class="vel-tbl"><thead><tr><th></th>`;
+  for (let z = 0; z < 4; z++) {
+    html += `<th style="color:${zoneColors[z]}">${zoneLabels[z]}</th>`;
+  }
+  html += `</tr></thead><tbody>`;
+
+  for (let q = 0; q < 4; q++) {
+    html += `<tr><td>Q${q+1} n${qNotes[q]}</td>`;
+    for (let z = 0; z < 4; z++) {
+      const sampA = velA ? (velA[q]?.[z] ?? []) : [];
+      const sampB = velB ? (velB[q]?.[z] ?? []) : [];
+      const mA = median(sampA);
+      const mB = median(sampB);
+
+      if (mA === null && mB === null) {
+        html += `<td><span class="vel-nodata">—</span></td>`;
+      } else {
+        const aStr = mA !== null ? mA : '—';
+        const bStr = mB !== null ? mB : '—';
+        let deltaHtml = '';
+        if (mA !== null && mB !== null) {
+          const d = mB - mA;
+          const dStr = (d >= 0 ? '+' : '') + d;
+          const cls = Math.abs(d) <= 5 ? 'ok' : Math.abs(d) <= 15 ? 'warn' : 'bad';
+          deltaHtml = `<span class="vel-delta ${cls}">${dStr}</span>`;
+        }
+        html += `<td><div class="vel-cell">
+          <div class="vel-ab"><span class="vel-a">${aStr}</span><span style="color:var(--text3)">/</span><span class="vel-b">${bStr}</span></div>
+          ${deltaHtml}
+        </div></td>`;
+      }
+    }
+    html += `</tr>`;
+  }
+  html += `</tbody></table>`;
+  wrap.innerHTML = html;
+}
+
+function exportPresetCSV() {
+  const p1 = window.compareA, p2 = window.compareB;
+  if (!p1 || !p2) { alert('Run a compare first.'); return; }
+  const lbl1 = window.compareLabelA || 'A';
+  const lbl2 = window.compareLabelB || 'B';
+  const rows = [`parameter,"${lbl1}","${lbl2}",differs`];
+  for (const key of PRESET_MODEL_KEYS) {
+    const v1 = p1[key] ?? '', v2 = p2[key] ?? '';
+    rows.push(`${key},${v1},${v2},${v1 !== v2 ? 'YES' : ''}`);
+  }
+  downloadBlob(rows.join('\n'), 'text/csv', 'boppad-preset-compare.csv');
+}
+
+function sendSessionToDevice(slot) {
+  const sel = document.getElementById(`cmp-${slot}`);
+  const val = sel.value;
+  if (!val || val === 'factory') {
+    if (val === 'factory') {
+      factoryReset();
+    } else {
+      alert('Select a session for slot ' + slot.toUpperCase() + ' first.');
+    }
+    return;
+  }
+  const idx = parseInt(val);
+  if (isNaN(idx)) return;
+  sendPresetToDevice(idx);
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MIDI
+// ═══════════════════════════════════════════════════════════════════════════
+
+let midiAccess = null;
+
+async function initMIDI() {
+  try {
+    midiAccess = await navigator.requestMIDIAccess({ sysex: true });
+    populateDeviceLists();
+    midiAccess.onstatechange = () => populateDeviceLists();
+  } catch (e) {
+    document.getElementById('status-text').textContent = 'MIDI denied';
+    console.error('MIDI access denied:', e);
+  }
+}
+
+function populateDeviceLists() {
+  // Inputs
+  const inSel = document.getElementById('midi-in');
+  const prevIn = inSel.value;
+  inSel.innerHTML = '<option value="">— select input —</option>';
+  for (const [id, input] of midiAccess.inputs) {
+    const opt = document.createElement('option');
+    opt.value = id; opt.textContent = input.name;
+    inSel.appendChild(opt);
+  }
+  if (prevIn && [...midiAccess.inputs.keys()].includes(prevIn)) {
+    inSel.value = prevIn;
+  }
+
+  // Outputs
+  const outSel = document.getElementById('midi-out');
+  const prevOut = outSel.value;
+  outSel.innerHTML = '<option value="">— select output —</option>';
+  for (const [id, output] of midiAccess.outputs) {
+    const opt = document.createElement('option');
+    opt.value = id; opt.textContent = output.name;
+    outSel.appendChild(opt);
+  }
+  if (prevOut && [...midiAccess.outputs.keys()].includes(prevOut)) {
+    outSel.value = prevOut;
+    activeOutput = midiAccess.outputs.get(prevOut) || null;
+  }
+
+  // Reconnect input if selection still valid
+  if (prevIn && [...midiAccess.inputs.keys()].includes(prevIn)) {
+    connectInput(prevIn);
+  }
+}
+
+function connectInput(id) {
+  if (activeInput) activeInput.onmidimessage = null;
+  activeInput = midiAccess.inputs.get(id) || null;
+  if (activeInput) {
+    activeInput.onmidimessage = onMidiMessage;
+    autoMatchOutput();
+  }
+}
+
+function autoMatchOutput() {
+  if (!activeInput || activeOutput) return;
+  for (const [id, out] of midiAccess.outputs) {
+    if (out.name === activeInput.name) {
+      activeOutput = out;
+      document.getElementById('midi-out').value = id;
+      break;
+    }
+  }
+}
+
+function setConnected(on) {
+  document.getElementById('status-dot').className = on ? 'connected' : '';
+  document.getElementById('status-text').textContent = on ? 'MIDI connected' : 'no events yet';
+}
+
+function onMidiMessage(event) {
+  const data = event.data;
+
+  // SysEx
+  if (data[0] === 0xF0) {
+    handleSysex(data);
+    return;
+  }
+
+  const status = data[0], data1 = data[1], data2 = data[2];
+  const msgType = status & 0xF0;
+  const midiCh  = (status & 0x0F) + 1;
+  const ccKey   = midiCh; // ch 1-16
+
+  const zoneCC     = getZoneCC();
+  const thresholds = getThresholds();
+  const qNotes     = getQNotes();
+  const rawMode    = document.getElementById('raw-mode').checked;
+
+  if (!rawMode && msgType === 0xB0 && data1 === zoneCC) {
+    lastZoneCC[ccKey] = decodeZone(data2, thresholds);
+    addTrace('in', `CC${data1}=${data2}  Z${lastZoneCC[ccKey]}`);
+    return;
+  }
+
+  if (msgType === 0x90 && data2 > 0) {
+    const quadrant = qNotes.indexOf(data1);
+    const zone = rawMode ? 0 : (lastZoneCC[ccKey] || 0);
+    addTrace('in', `n${data1}  Q${quadrant >= 0 ? quadrant+1 : '?'}  Z${zone}  v${data2}`, quadrant, zone);
+    if (quadrant < 0) return;
+    setConnected(true);
+    flashBadge(quadrant, zone, data2);
+    if (recording) recordHit(quadrant, zone, data2);
+  }
+}
+
+// ── Event listeners ───────────────────────────────────────────────────────────
+document.getElementById('midi-in').addEventListener('change', e => {
+  connectInput(e.target.value);
+});
+
+document.getElementById('midi-out').addEventListener('change', e => {
+  activeOutput = e.target.value ? (midiAccess?.outputs.get(e.target.value) || null) : null;
+});
+
+
+// ── Utility ───────────────────────────────────────────────────────────────────
+function downloadBlob(content, type, filename) {
+  const url = URL.createObjectURL(new Blob([content], { type }));
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+sessions = JSON.parse(localStorage.getItem('boppad_sessions') || '[]');
+buildSVG();
+renderGrid();
+updateSpread();
+renderSessions();
+renderComparePickers();
+initMIDI();
+</script>
+
+</body>
+</html>
